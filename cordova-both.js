@@ -18,7 +18,12 @@ if (Meteor.isCordova) {
             console.log("Error " + e);
         };
 
-        var messageHandler = options.messageHandler || function(payload, foreground, coldstart) {
+        var tokenHandler = options.tokenHandler || function(data) {
+            // TODO: CALL UPDATE APN TOKEN METHOD HERE (NOT SURE OF THE FORMAT IT ARRIVES IN)
+            // https://developer.apple.com/library/ios/documentation/NetworkingInternet/Conceptual/RemoteNotificationsPG/Chapters/ApplePushService.html#//apple_ref/doc/uid/TP40008194-CH100-SW12
+        }
+
+        var messageHandlerGCM = options.messageHandlerGCM || function(payload, foreground, coldstart) {
             if (!payload) return null;
             if (foreground && !coldstart) {
                 navigator.notification.alert(
@@ -37,14 +42,26 @@ if (Meteor.isCordova) {
             }
         };
 
+        var messageHandlerAPN = function(event) {
+            // TODO: TAKE WHATEVER ACTION ON RECEIPT OF AN APN MESSAGE
+            // http://plugins.cordova.io/#/package/com.phonegap.plugins.pushplugin
+            // http://plugins.cordova.io/#/package/de.appplant.cordova.plugin.local-notification
+            // http://plugins.cordova.io/#/package/org.apache.cordova.dialogs 
+        }
+
         Cordova.onNotificationGCM = options.onNotificationGCM || function(res) {
             if (res.event === 'registered') {
                 if (res.regid) {
                     Meteor.call('cordova-notifications/updateRegid', res.regid, options.registeredCallback);
                 }
             } else if (res.event === 'message') {
-                messageHandler(res.payload, res.foreground, res.coldstart);
+                messageHandlerGCM(res.payload, res.foreground, res.coldstart);
             }
+        }
+
+        Cordova.onNotificationAPN = options.onNotificationAPN || function(event) {
+            // TODO: PROBABLY JUST PASS THE EVENT STRAIGHT THROUGH TO messageHandlerAPN SINCE THERE'S NO
+            // TOKEN REGISTRATION TO WORRY ABOUT HERE FOR APN, JUST NOTIFICATIONS.
         }
 
         Tracker.autorun(function(c) {
@@ -56,8 +73,9 @@ if (Meteor.isCordova) {
                         "ecb": "Cordova.onNotificationGCM"
                     });
                 } else {
-                    // TODO: APN HANDLER REGISTRATION HERE
-                }
+                    // TODO: CALL APN REGISTRATION HERE, PASSING Cordova.onNotificationAPN, etc.
+                    // http://plugins.cordova.io/#/package/com.phonegap.plugins.pushplugin
+                  }
                 c.stop();
             }
         });
@@ -120,6 +138,13 @@ if (Meteor.isCordova) {
                 );
             }
 
+            // TODO: PULL OUT A LIST OF APN TOKENS FROM users ARRAY AND NOTIFY THEM
+            // THIS NPM PACKAGE MIGHT SIMPLIFY THINGS: https://www.npmjs.org/package/apn
+
+            // IN ADDITION, AT PRESENT THIS IS USING A FUTURE TO RETURN THE GCM RESPONSE AND GCM USERS NOTIFIED,
+            // SO APN DISTRIBUTION WOULD PROBABLY HAVE TO BE PUT IN THE HTTP CALLBACK OR ELSE USE AN ASYNC LIBRARY
+            // FUNCTION TO CALL fut.return WHEN BOTH RESPONSES HAVE BEEN RECEIVED
+
             return fut.wait();
 
         };
@@ -131,7 +156,8 @@ if (Meteor.isCordova) {
                         regid: regid
                     }
                 });
-            }
+            },
+            // TODO: ADD METHOD TO ATTACH APN TOKEN TO USER DOC
         });
 
         return instance;

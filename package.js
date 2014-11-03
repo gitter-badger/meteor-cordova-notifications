@@ -18,7 +18,6 @@ Package.on_use(function(api) {
   api.use('accounts-base@1.1.2', 'client');
 
   api.add_files('cordova-both.js');
-  api.add_files('cordova-server.js', 'server')
 
   api.export('NotificationClient');
   api.export('Cordova');
